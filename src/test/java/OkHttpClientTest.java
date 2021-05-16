@@ -75,6 +75,7 @@ public class OkHttpClientTest extends AbstractTest {
 
             int tryCount = 1;
             int maxLimit = 2; //Set your max limit here
+            System.out.println("Method:"+request.method());
 
             while (!response.isSuccessful() && tryCount <= maxLimit) {
 
@@ -89,7 +90,6 @@ public class OkHttpClientTest extends AbstractTest {
                 // Retry the request
                 response = chain.proceed(request1);
             }
-
             // otherwise just pass the original response on
             return response;
         }
