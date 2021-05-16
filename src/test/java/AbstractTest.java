@@ -33,6 +33,20 @@ public class AbstractTest {
 
         client.when(request().withPath("/401"))
                 .respond(response()
-                .withStatusCode(401));
+                        .withStatusCode(401));
+
+        client.when(request().withPath("/retry1")).
+                respond(response()
+                        .withStatusCode(500));
+
+        client.when(request().withPath("/retry1")
+                .withPath("/retry2")).
+                respond(response()
+                        .withStatusCode(500));
+
+        client.when(request()
+                .withPath("/retry3"))
+                .respond(response().withStatusCode(200)
+                        .withBody(" I am ok"));
     }
 }

@@ -1,9 +1,9 @@
-import okhttp3.HttpUrl;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import okhttp3.*;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,7 +24,7 @@ public class OkHttpClientTest extends AbstractTest {
         Request request = new Request.Builder()
                 .url(endpoint + "/test").build();
         Response response = okHttpClient.newCall(request).execute();
-        System.out.println("My responses=>"+response.body().toString());
+        System.out.println("My responses=>" + response.body().toString());
         assertThat(response.isSuccessful()).isEqualTo(true);
     }
 
@@ -45,10 +45,56 @@ public class OkHttpClientTest extends AbstractTest {
     @DisplayName("Test 401 status code")
     public void test_404() throws Exception {
         Request request = new Request.Builder()
-                .url(endpoint+"/401")
+                .url(endpoint + "/401")
                 .build();
         Response response = okHttpClient.newCall(request).execute();
         assertThat(response.isSuccessful()).isEqualTo(false);
     }
 
+    @Test
+    public void testRetry_then_return_ok() throws Exception {
+
+        var request = new Request.Builder()
+                .url(endpoint + "/retry1")
+                .build();
+        var client = okHttpClient.newBuilder()
+                .addInterceptor(new MyInterceptor()).addInterceptor(new LoggingInterceptor()).build();
+        var response = client.newCall(request).execute();
+        assertThat(response.isSuccessful()).isEqualTo(true);
+
+    }
+
+    class MyInterceptor implements Interceptor {
+        @NotNull
+        @Override
+        public Response intercept(@NotNull Chain chain) throws IOException {
+
+            Request request = chain.request();
+            // try the request
+            Response response = chain.proceed(request);
+
+            int tryCount = 1;
+            int maxLimit = 2; //Set your max limit here
+
+            while (!response.isSuccessful() && tryCount <= maxLimit) {
+
+                System.out.println("intercept" + "Request failed - " + tryCount);
+                tryCount++;
+
+                // Adding test for different url for retry purpose request.url();
+                Request request1 =new Request.Builder()
+                        .url(endpoint + "/retry"+tryCount)
+                        .build();
+                // end custom
+                // Retry the request
+                response = chain.proceed(request1);
+            }
+
+            // otherwise just pass the original response on
+            return response;
+        }
+    }
 }
+
+
+
